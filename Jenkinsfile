@@ -1,10 +1,22 @@
 pipeline {
-  agent { docker { image 'mcr.microsoft.com/playwright:v1.55.0-noble' } }
+  agent any
 
   stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Install Dependencies') {
       steps {
-        sh 'npm ci'
+        sh 'npm ci' // or 'npm install' if you prefer
+      }
+    }
+
+    stage('Install Playwright Browsers') {
+      steps {
+        sh 'npx playwright install --with-deps'
       }
     }
 
@@ -12,6 +24,12 @@ pipeline {
       steps {
         sh 'npx playwright test'
       }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'playwright-report/**', fingerprint: true
     }
   }
 }
