@@ -1,33 +1,52 @@
 pipeline {
-  agent { docker { image 'mcr.microsoft.com/playwright:v1.55.0-noble' } }
+    agent any
 
-  stages {
-    stage('Install Dependencies') {
-      steps {
-        sh 'npm ci'
-      }
+    tools {
+        nodejs 'node-lts' // The name you configured in Jenkins Tools
     }
 
-    stage('Run Playwright Tests') {
-      steps {
-        sh 'npx playwright test'
-      }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // Clone your GitHub repo
+                git branch: 'main', url: 'https://github.com/MohanaPoojary/setup-playwright-workflow'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+            }
+        }
+
+        stage('Install Playwright Browsers') {
+            steps {
+                sh 'npx playwright install --with-deps'
+            }
+        }
+
+        stage('Run Playwright Tests') {
+            steps {
+                sh 'npx playwright test'
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                // Publish HTML report in Jenkins UI
+                publishHTML(target: [
+                    reportDir: 'playwright-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Playwright Report'
+                ])
+            }
+        }
     }
 
-    stage('Publish Report') {
-      steps {
-        publishHTML(target: [
-          reportDir: 'playwright-report',
-          reportFiles: 'index.html',
-          reportName: 'Playwright Report'
-        ])
-      }
+    post {
+        always {
+            // Archive report as a downloadable artifact
+            archiveArtifacts artifacts: 'playwright-report/**', fingerprint: true
+        }
     }
-  }
-
-  post {
-    always {
-      archiveArtifacts artifacts: 'playwright-report/**', fingerprint: true
-    }
-  }
 }
